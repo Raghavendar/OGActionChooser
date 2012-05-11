@@ -4,6 +4,8 @@ Purpose
 `OGActionChooser` is an iOS control that can be used as a replacement for `UIActionSheet` or `UIAlertView`. It displays an arbitrarily long list of button items, each having a title and image. The user can select an item or close the action chooser.
 The items can optionally be disabled.
 
+![Screenshot](http://media.tumblr.com/tumblr_m2haju2Ubb1qlm2g5.jpg "Screenshot")
+
 Sample Code
 ------------
 
