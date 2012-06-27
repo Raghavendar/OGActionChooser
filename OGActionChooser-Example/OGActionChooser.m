@@ -31,7 +31,7 @@
 
 
 typedef struct { char page; char column; char row; } ActionIndexPath;
-ActionIndexPath actionIndexPathMake(char page, char column, char row) {
+static ActionIndexPath actionIndexPathMake(char page, char column, char row) {
 	ActionIndexPath aip;
 	aip.page = page; aip.column = column; aip.row = row;
 	return aip;
