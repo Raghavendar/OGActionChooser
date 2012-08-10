@@ -19,12 +19,19 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
-
+#ifdef __BLOCKS__
+typedef void(^buttonClicked)(NSString *title, BOOL *dismiss);
+#endif
 
 @interface OGActionButton : NSObject {}
 @property (nonatomic, copy) NSString *title;
 @property (nonatomic, retain) UIImage *image;
 @property (nonatomic, assign) BOOL enabled;
+#ifdef __BLOCKS__
+@property (nonatomic, copy) buttonClicked block;
++ (id)buttonWithTitle:(NSString*)t image:(UIImage*)i enabled:(BOOL)en block:(buttonClicked)b;
++ (id)buttonWithTitle:(NSString*)t imageName:(NSString*)n enabled:(BOOL)en block:(buttonClicked)b;
+#endif
 + (id)buttonWithTitle:(NSString*)t image:(UIImage*)i enabled:(BOOL)en;
 + (id)buttonWithTitle:(NSString*)t imageName:(NSString*)n enabled:(BOOL)en;
 @end
@@ -36,6 +43,7 @@
 @property (nonatomic, copy) NSString* title;
 @property (nonatomic, retain) UIColor *backgroundColor; // r17 g25 b68 a0.8
 @property (nonatomic) BOOL shouldDrawShadow; // YES
+@property (nonatomic) BOOL dismissAfterwards; // NO
 
 + (id)actionChooserWithDelegate:(id<OGActionChooserDelegate>)dlg;
 - (void)setButtonsWithArray:(NSArray*)buttons;
@@ -44,8 +52,7 @@
 @end
 
 @protocol OGActionChooserDelegate <NSObject>
-@required
-- (void)actionChooser:(OGActionChooser*)ac buttonPressedWithIndex:(NSInteger)index;
 @optional
+- (void)actionChooser:(OGActionChooser*)ac buttonPressedWithIndex:(NSInteger)index;
 - (void)actionChooserFinished:(OGActionChooser*)ac;
 @end

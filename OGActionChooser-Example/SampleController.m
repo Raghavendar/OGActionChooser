@@ -68,22 +68,26 @@
 {
 	OGActionChooser *acSheet = [OGActionChooser actionChooserWithDelegate:self];
 	acSheet.title = @"Chooser title";
+//	acSheet.dismissAfterwards = YES; // Default: NO
+//	acSheet.shouldDrawShadow = NO;   // Default: YES
 	
-	OGActionButton *fst = [OGActionButton buttonWithTitle:@"Toggle Shadow" 
-												imageName:@"actionChooser_Button" 
-												  enabled:YES];
-	OGActionButton *snd = [OGActionButton buttonWithTitle:@"Change Color" 
-												imageName:@"actionChooser_Button" 
-												  enabled:YES];
-	OGActionButton *trd = [OGActionButton buttonWithTitle:@"Next Page" 
-												imageName:@"actionChooser_Button.png" 
-												  enabled:YES];
+	NSString *imgName = @"actionChooser_Button.png";
+	
+	OGActionButton *fst = [OGActionButton buttonWithTitle:@"Toggle Shadow" imageName:imgName enabled:YES];
+	OGActionButton *snd = [OGActionButton buttonWithTitle:@"Change Color" imageName:imgName enabled:YES];
+	OGActionButton *trd = [OGActionButton buttonWithTitle:@"Next Page" imageName:imgName enabled:YES];
+	OGActionButton *fth = [OGActionButton buttonWithTitle:@"BLOCKS" imageName:imgName enabled:YES];
+	
+	fth.block = ^(NSString *title, BOOL *dismiss) {
+		NSLog(@"you can now use ^(%@) too …", title);
+		*dismiss = YES;
+	};
 	
 	// you can use 'buttonWithTitle:image:enabled:' for example if you like to draw it with Quartz. Or you want to copy from another image etc.
 	
 	[acSheet setButtonsWithArray:[NSArray arrayWithObjects:
 								  fst, @"", snd, // always three in a row (currently)
-								  @"", @"", @"",
+								  @"", fth, @"",
 								  trd, nil]]; // next page
 	[acSheet presentInView: sender.superview];
 }
@@ -101,8 +105,8 @@
 		case 0:
 			ac.shouldDrawShadow = !ac.shouldDrawShadow; break;
 		case 2:
-			ac.backgroundColor = [UIColor colorWithRed:rand()%255/255.0 
-												 green:rand()%255/255.0 
+			ac.backgroundColor = [UIColor colorWithRed:rand()%255/255.0
+												 green:rand()%255/255.0
 												  blue:rand()%255/255.0 alpha:0.8f];
 			break;
 		case 6:

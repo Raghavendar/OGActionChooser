@@ -51,7 +51,8 @@ static ActionIndexPath actionIndexPathMake(char page, char column, char row) {
 @end
 
 @interface OGActionChooserButton : UIButton {}
-- (id)initWithImage:(UIImage*)image andTitle:(NSString*)title;
+@property (nonatomic, retain) OGActionButton *dataSource;
+- (id)initWithActionButton:(OGActionButton*)btn;
 @end
 
 
@@ -83,7 +84,7 @@ static ActionIndexPath actionIndexPathMake(char page, char column, char row) {
 
 
 @implementation OGActionChooser
-@synthesize delegate = _delegate, title = _title, backgroundColor = _backgroundColor, shouldDrawShadow = _shouldDrawShadow;
+@synthesize delegate = _delegate, title = _title, backgroundColor = _backgroundColor, shouldDrawShadow = _shouldDrawShadow, dismissAfterwards = _dismissAfterwards;
 @synthesize buttonScroll = _buttonScroll, pageControl = _pageControl, titleLabel = _titleLabel, background = _background;
 
 - (id)init {
@@ -145,6 +146,7 @@ static ActionIndexPath actionIndexPathMake(char page, char column, char row) {
 		[chooserView release];
 		
 		self.shouldDrawShadow = YES;
+		self.dismissAfterwards = NO;
 		
 	}
 	return self;
@@ -206,7 +208,7 @@ static ActionIndexPath actionIndexPathMake(char page, char column, char row) {
 
 - (void)setBackgroundColor:(UIColor *)bg { _background.fillColor = bg; }
 
--(void)setShouldDrawShadow:(BOOL)value
+- (void)setShouldDrawShadow:(BOOL)value
 {
 	if (_shouldDrawShadow != value) {
 		_shouldDrawShadow = value;
@@ -220,7 +222,23 @@ static ActionIndexPath actionIndexPathMake(char page, char column, char row) {
 	int tg = sender.tag;
 	ActionIndexPath indexPath = actionIndexPathMake(tg/100, (tg%100)/10, tg%10);
 	int arrayIndex = indexPath.page*(maxColumns*maxRows)+(maxColumns*indexPath.row)+indexPath.column;
-	[_delegate actionChooser:self buttonPressedWithIndex:arrayIndex];
+	
+	BOOL _dismiss = _dismissAfterwards;
+	
+	#ifdef __BLOCKS__
+	if ([sender.dataSource respondsToSelector:@selector(block)]) {
+		if (sender.dataSource.block)
+			sender.dataSource.block(sender.dataSource.title, &_dismiss);
+	}
+	#endif
+	
+	if (_delegate) {
+		if ([_delegate respondsToSelector:@selector(actionChooser:buttonPressedWithIndex:)]) {
+			[_delegate actionChooser:self buttonPressedWithIndex:arrayIndex];
+		}
+	}
+	
+	if (_dismiss) [self dismiss];
 }
 
 - (void)setButtonsWithArray:(NSArray*)buttons {
@@ -244,9 +262,11 @@ static ActionIndexPath actionIndexPathMake(char page, char column, char row) {
 		}
 		OGActionButton *actBtn = [buttons objectAtIndex:i];
 		
-		if (actBtn && [actBtn isKindOfClass:[OGActionButton class]]) {
-			OGActionChooserButton *gacb = [[OGActionChooserButton alloc]initWithImage:actBtn.image andTitle:actBtn.title];
+		if (actBtn && [actBtn isKindOfClass:[OGActionButton class]])
+		{
+			OGActionChooserButton *gacb = [[OGActionChooserButton alloc]initWithActionButton:actBtn];
 			[gacb addTarget:self action:@selector(actionButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
+			
 			gacb.center = [self buttonCenterPoint: actionIndexPathMake(page, column, row)];
 			gacb.enabled = actBtn.enabled;
 			gacb.tag = page*100 + column*10 + row;
@@ -327,15 +347,43 @@ static ActionIndexPath actionIndexPathMake(char page, char column, char row) {
 
 @implementation OGActionButton
 @synthesize title, image, enabled;
-+ (id)buttonWithTitle:(NSString*)t imageName:(NSString*)n enabled:(BOOL)en {
+
++ (id)buttonWithTitle:(NSString*)t imageName:(NSString*)n enabled:(BOOL)en
+{
 	return [OGActionButton buttonWithTitle:t image:[UIImage imageNamed:n] enabled:en];
 }
-+ (id)buttonWithTitle:(NSString*)t image:(UIImage*)i enabled:(BOOL)en {
++ (id)buttonWithTitle:(NSString*)t image:(UIImage*)i enabled:(BOOL)en
+{
 	OGActionButton *btn = [[super alloc]init];
 	btn.title = t;
 	btn.image = i;
 	btn.enabled = en;
 	return [btn autorelease];
+}
+
+#ifdef __BLOCKS__
+@synthesize block;
++ (id)buttonWithTitle:(NSString*)t imageName:(NSString*)n enabled:(BOOL)en block:(buttonClicked)b
+{
+	OGActionButton *btn = [OGActionButton buttonWithTitle:t imageName:n enabled:en];
+	btn.block = b;
+	return btn;
+}
++ (id)buttonWithTitle:(NSString*)t image:(UIImage*)i enabled:(BOOL)en block:(buttonClicked)b
+{
+	OGActionButton *btn = [OGActionButton buttonWithTitle:t image:i enabled:en];
+	btn.block = b;
+	return btn;
+}
+#endif
+
+- (void)dealloc {
+	[title release];
+	[image release];
+	#ifdef __BLOCKS__
+	[block release];
+	#endif
+	[super dealloc];
 }
 @end
 
@@ -348,10 +396,14 @@ static ActionIndexPath actionIndexPathMake(char page, char column, char row) {
 #pragma mark - ActionChooserButton
 
 @implementation OGActionChooserButton
-- (id)initWithImage:(UIImage*)image andTitle:(NSString*)title {
+@synthesize dataSource;
+- (id)initWithActionButton:(OGActionButton*)btn
+{
 	self = [super initWithFrame:CGRectMake(0,0,ActionButtonSizeX,ActionButtonSizeY)];
 	if (self) {
-		[self setImage:image forState:UIControlStateNormal];
+		self.dataSource = btn;
+		
+		[self setImage:dataSource.image forState:UIControlStateNormal];
 		
 		UILabel *btnLabel = [[UILabel alloc]initWithFrame:CGRectMake(2,83,ActionButtonSizeX-4,12)]; // 2px padding
 		btnLabel.textColor = [UIColor colorWithRed:0.0f green:0.25f blue:0.5f alpha:1.0f];
@@ -360,11 +412,15 @@ static ActionIndexPath actionIndexPathMake(char page, char column, char row) {
 		btnLabel.backgroundColor = [UIColor clearColor];
 		btnLabel.lineBreakMode = UILineBreakModeTailTruncation;
 		btnLabel.highlightedTextColor = [UIColor whiteColor];
-		btnLabel.text = title;
+		btnLabel.text = dataSource.title;
 		[self addSubview:btnLabel];
 		[btnLabel release];
 	}
 	return self;
+}
+-(void)dealloc {
+	[dataSource release];
+	[super dealloc];
 }
 @end
 
